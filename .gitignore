@@ -105,3 +105,8 @@ venv.bak/
 # mypy
 .mypy_cache/
 
+.idea/Facial-Recognition.iml
+.idea/misc.xml
+.idea/modules.xml
+.idea/vcs.xml
+.idea/workspace.xml
