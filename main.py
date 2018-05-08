@@ -6,12 +6,24 @@
 # Command Line
 
 import sys
+import os
 import time
+# import mysql.connector
 import getpass
 
+# cnx = mysql.connector.connect(user='root', password='senha',
+#                               host='localhost',
+#                               database='Facial_Recognition')
+# Funcoes do MySQL
+
+add_Usuarios = ("INSERT INTO Alunos "
+               "(NOME,FOTO) "
+               "VALUES (%s, %s)") #FIXME: Mudar a variavel para uma que aceite imagem
 
 
-cpf_Validacao = False
+
+
+
 
 def AddAluno():
     print("- Adição de um novo Aluno -")
@@ -66,10 +78,34 @@ def Cadastrar():
         if senha_root == "1234":
             break
 
-    nome_ = input("Digite o nome: ")
+    while True:
+        # Inicio do cadastro
+        nome_ = input("Digite o nome: ")
+        # TODO:
+        '''
+        Usar o openCV para gerar um retangulo na tela para que o usuario coloque o rosto dentro dele para que a sua
+        foto possa ser salva.
+        '''
 
-    # TODO: Reconhecimento facial
-    # TODO: Mandar pro BD
+        foto = "Foto_aqui" #FIXME: Atribuir a foto
+
+        # Parte do Banco de Dados MySQL
+        # cursor = cnx.cursor()
+        # dados_usuario = (nome_,foto)
+        # cursor.execute(add_Usuarios, dados_usuario) # Salvando no BD
+        # cnx.commit()
+        # cursor.close()
+        print("Usuário cadastrado com sucesso")
+        resposta = input("Deseja cadastrar outro usuário? ")
+        if  resposta == "n" or  resposta == "N":
+            os.system("clear")
+            print("Saindo...")
+            time.sleep(0.5)
+
+            break
+        else:
+            pass
+
 
 # BLOB : imagem no mysql
 
