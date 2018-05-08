@@ -71,7 +71,7 @@ def Cadastrar():
     # TODO: Reconhecimento facial
     # TODO: Mandar pro BD
 
-
+# BLOB : imagem no mysql
 
 
 
