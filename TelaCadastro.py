@@ -6,6 +6,8 @@ from PIL import Image, ImageTk
 import numpy
 import mysql.connector
 
+from TelaWebcam import TelaWebcam
+
 '''
 >> Configuracao do BD
 cnx = mysql.connector.connect(user='root', password='senha',
@@ -21,11 +23,15 @@ class TelaCadastro():
         self.telaCadastro.title('Tela de Cadastro')
         self.telaCadastro.geometry('300x200')
 
+
     def salvarDados(self):
         print("Salvando...")
         # TODO: openCV
         nome = e1.get()
         print(nome)
+        self.telaWebcam = TelaWebcam()
+        self.telaWebcam.show()
+
     def show(self):
         Label(self.telaCadastro, text="Nome:").grid(row=0, sticky=E)
         # Nome
