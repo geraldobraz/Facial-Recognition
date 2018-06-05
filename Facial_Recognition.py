@@ -1,9 +1,12 @@
 from tkinter import *
+# from tkinter import filedialog
+from tkinter.filedialog import *
 import os
 import cv2
-import sys
-from PIL import Image, ImageTk
-import numpy
+# import sys
+# from PIL import Image, ImageTk
+# import numpy
+from tkinter import messagebox
 import time
 
 class Finalize():
@@ -38,17 +41,17 @@ class Choice():
 class TelaWebcam_Save():
     sampleNum = 0
     idNum = 0
-    def __init__(self, master, cpf, sampleNum):
+    def __init__(self, master, cpf, sampleNum,qtdeImagens):
         self.Tela = Toplevel(root)
         self.cpf = cpf
         self.sampleNum = sampleNum
         # self.highestValue = sampleNum
         # self.telaWebcam_save.geometry("300x150")
-        self.trainData()
+        self.pegarImagem()
         print("SampleNum is " + str(self.sampleNum))
         # self.moveNext()
 
-    def trainData(self):
+    def pegarImagem(self):
         self.Tela.destroy()
         # self.telaWebcam_save.destroy()
         sampleNum = self.sampleNum
@@ -56,9 +59,10 @@ class TelaWebcam_Save():
         highestValue = sampleNum
         face_cascade = cv2.CascadeClassifier(
             '/home/geraldobraz/opencv-3.4.1/data/haarcascades/haarcascade_frontalface_default.xml')
-        cam = cv2.VideoCapture(1)
+        cam = cv2.VideoCapture(0)
         while True:
             _, frame = cam.read()
+
 
             # cv2image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGBA)
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -66,11 +70,11 @@ class TelaWebcam_Save():
             for (x, y, w, h) in faces:
                 sampleNum += 1
                 cv2.imwrite("dataSet/User." + str(self.idNum) + "." + str(self.sampleNum) + ".jpg", gray[y:y + h, x:x + w])
-                cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
+                # cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
                 cv2.waitKey(100)
             if cv2.waitKey(100) & 0xFF == ord('q'):
                 break
-            elif sampleNum > highestValue + 15:
+            elif sampleNum > highestValue + 5:
                 break
             cv2.imshow("Face", frame)
             cv2.waitKey(1)
@@ -78,15 +82,20 @@ class TelaWebcam_Save():
         cv2.destroyAllWindows()
         self.upload2BD(frame)
 
-    def upload2BD(self, frame):
+    def upload2BD(self, aux):
         print("Imagens/"+ self.cpf+".jpg")
-        cv2.imwrite("Imagens/"+ self.cpf+".jpg", frame)
+        cv2.imwrite("Imagens/"+ self.cpf+".jpg", aux)
         # self.telaWebcam_save.quit()
         time.sleep(0.5)
         telaChoice = Choice(root, self.cpf)
 
+class Train():
+    def __init__(self,files):
+        self.dir = files
+        # subject_images_names = os.listdir(subject_dir_path)
+        # TODO: chamar a tela choice
 class TelaCadastro():
-
+    qtdeImagens = 0
     def __init__(self,master):
         self.Tela = Toplevel(root)
         self.Tela.title('Tela de Cadastro')
@@ -117,16 +126,47 @@ class TelaCadastro():
     def facialRecognation(self):
         self.Tela.destroy()
         sampleNum = 0
-        self.telaWebcam_Save = TelaWebcam_Save(root,self.cpf,sampleNum)
+        # self.telaWebcam_Save = TelaWebcam_Save(root,self.cpf,sampleNum,self.qtdeImagens)
+        lista = []
+        ftypes = [('jpg file', "*.jpg")]
+        root.fileName = askopenfilenames(filetypes=ftypes)
+        print(root.fileName)
+        for i in (root.fileName):
+            print(i)
+        train = Train(root.fileName)
 
 class TelaEntrar():
     def __init__(self,master):
-        self.tela = master
-        self.tela = Toplevel(master)
-        self.tela.title('Tela de Inicio')
-        self.tela.geometry('250x300')
-        entrouLabel = Label(self.tela, text="ENTROU")
-        entrouLabel.grid()
+        self.Tela = Toplevel(root)
+
+        self.Tela.title('Tela de Inicio')
+        self.Tela.geometry('300x200')
+        Label(self.Tela, text="Digite o CPF :").grid(row=0, sticky=E)
+        Label(self.Tela, text="CPF:").grid(row=3, sticky=E)
+
+        # CPF
+        global e3
+        e3 = Entry(self.Tela)
+        e3.grid(row=3, column=1)
+        e3.focus_set()
+        Button(self.Tela, text='Entrar', command=self.Entrar).grid(row=7, column=1, sticky=W, pady=4)
+
+    def Entrar(self):
+        print("Entrou")
+        self.cpf = e3.get()
+        print(e3.get())
+        if True:
+            # TODO: Testar validade do cpf
+            try:
+                 x = os.open("Imagens/101/090.jpg",os.O_RDONLY)
+
+            #     TODO: Open folder
+            except:
+            # Erro tela
+                messagebox.showerror("Erro", "Cpf não está Cadastrado")
+
+        else:
+            messagebox.showerror("Erro", "Dados Inválidos")
 
 class TelaOpcoes():
     print("Tela Opcoes")
