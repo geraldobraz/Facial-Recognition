@@ -4,13 +4,15 @@ import cv2
 import sys
 from PIL import Image, ImageTk
 import numpy
+import TelaEntrar
 
 from TelaCadastro import TelaCadastro
-from TelaEntrar import TelaEntrar
+#from TelaEntrar import TelaEntrar
 def Entrar():
     print("Entrar")
-    telaEntrar = TelaEntrar()
-    telaEntrar.show()
+    #telaEntrar = TelaEntrar()
+    #telaEntrar.show()
+    TelaEntrar.start()
 def Cadastrar():
     print("Cadastrar")
     telaCadastro = TelaCadastro()

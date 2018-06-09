@@ -98,7 +98,7 @@ def Cadastrar():
         print("Usuário cadastrado com sucesso")
         resposta = input("Deseja cadastrar outro usuário? ")
         if  resposta == "n" or  resposta == "N":
-            os.system("clear")
+            os.system("cls")
             print("Saindo...")
             time.sleep(0.5)
 
