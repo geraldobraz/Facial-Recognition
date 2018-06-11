@@ -9,10 +9,32 @@ import numpy as np
 from tkinter import messagebox
 import time
 
+global detect_frontalface
+detect_frontalface = 'C:\opencv\sources\data\haarcascades\haarcascade_frontalface_default.xml'
+# '/home/geraldobraz/opencv-3.4.1/data/haarcascades/haarcascade_frontalface_default.xml'
+
+
+def detect_face(img):
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    face_cascade = cv2.CascadeClassifier(detect_frontalface)
+
+    rosto = face_cascade.detectMultiScale(gray, scaleFactor=1.2, minNeighbors=5);
+
+    if (len(rosto) == 0):
+        return None, None
+
+    # under the assumption that there will be only one face, extract the face area
+    (x, y, w, h) = rosto[0]
+
+    # return only the face part of the image
+    return gray[y:y + w, x:x + h], rosto[0]
+
+
 class Finalize():
     def __init__(self, master, cpf):
     #TODO:    Add no BD a imagem pelo cpf que recebeu
         print("Finalize")
+
 
 class Choice():
     def __init__(self,master,cpf):
@@ -38,6 +60,7 @@ class Choice():
         self.Tela.destroy()
         finalize = Finalize(root, self.cpf)
 
+
 class TelaWebcam_Save():
     sampleNum = 0
     idNum = 0
@@ -57,12 +80,11 @@ class TelaWebcam_Save():
         sampleNum = self.sampleNum
         print("First" + str(sampleNum))
         highestValue = sampleNum
-        face_cascade = cv2.CascadeClassifier('C:\opencv\sources\data\haarcascades\haarcascade_frontalface_default.xml')
-            #'/home/geraldobraz/opencv-3.4.1/data/haarcascades/haarcascade_frontalface_default.xml')
+        face_cascade = cv2.CascadeClassifier(detect_frontalface)
+
         cam = cv2.VideoCapture(0)
         while True:
             _, frame = cam.read()
-
 
             # cv2image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGBA)
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -89,19 +111,29 @@ class TelaWebcam_Save():
         time.sleep(0.5)
         telaChoice = Choice(root, self.cpf)
 
-class Train():
-    def __init__(self, files, cpff):
-        self.cpf = cpff
-        # caminho das imagens para realizar treinamento
-        self.dir = files
-        self.faces = []
 
-        #treinamento e salvamento
+class Train():
+    def __init__(self, files, cpf):
+        self.cpf = cpf
+        # caminho das imagens para realizar treinamento
+        self.faces = []
+        self.dir = [str(files) + '/' + i for i in os.listdir(files) if i.endswith(".jpg")]
+
+        # treinamento e salvamento
         self.faces_train = self.prepare_training_data()
         self.face_recognizer = cv2.face.LBPHFaceRecognizer_create()
         self.label = [_ for _ in range(1, len(self.faces_train)+1)]
         self.face_recognizer.train(self.faces_train, np.array(self.label))
-        self.face_recognizer.save("C:/Users/Pedro/OneDrive/UFPE/pythonnnnnn/training/" + str(self.cpf) + ".yml")
+
+        # cria a pasta 'training', se não existir
+        self.directory = './training/'
+        try:
+            if not os.path.exists(self.directory):
+                os.makedirs(self.directory)
+        except OSError:
+            print('Error: Creating directory. ' + self.directory)
+
+        self.face_recognizer.save("training/" + str(self.cpf) + ".yml")
 
         telaChoice = Choice(root, self.cpf)
 
@@ -116,7 +148,8 @@ class Train():
             # cv2.imshow("Training on image...", cv2.resize(self.image, (400, 500)))
             # cv2.waitKey(100)
 
-            self.face, _ = self.detect_face(self.image)
+            # self.face, _ = self.detect_face(self.image)
+            self.face, _ = detect_face(self.image)
             cv2.imshow("Face detection", cv2.resize(self.face, (400, 500)))
             cv2.waitKey(100)
 
@@ -131,27 +164,6 @@ class Train():
 
         return self.faces
 
-    def detect_face(self, imagem):
-        self.img = imagem
-        self.gray = cv2.cvtColor(self.img, cv2.COLOR_BGR2GRAY)
-        self.face_cascade = cv2.CascadeClassifier('C:\opencv\sources\data\haarcascades\haarcascade_frontalface_default.xml')
-
-        self.rosto = self.face_cascade.detectMultiScale(self.gray, scaleFactor=1.2, minNeighbors=5);
-
-        if (len(self.rosto) == 0):
-            return None, None
-
-        # under the assumption that there will be only one face, extract the face area
-        (self.x, self.y, self.w, self.h) = self.rosto[0]
-
-        # return only the face part of the image
-        return self.gray[self.y:self.y + self.w, self.x:self.x + self.h], self.rosto[0]
-
-    '''def predict(self, imagemm):
-        self.imag = imagemm.copy()
-
-        self.rost, self.rect = self.detect_face(self.imag)
-        self.labels, self.confidence = self.face_recognizer.predict(self.rost)'''
 
 class TelaCadastro():
     qtdeImagens = 0
@@ -187,14 +199,22 @@ class TelaCadastro():
         self.Tela.destroy()
         sampleNum = 0
         # self.telaWebcam_Save = TelaWebcam_Save(root,self.cpf,sampleNum,self.qtdeImagens)
-        lista = []
-        ftypes = [('jpg file', "*.jpg")]
-        root.fileName = askopenfilenames(filetypes=ftypes)
-        # print(root.fileName)
-        # print(lista)
+
+        # cria uma pasta a partir do cpf para salvar as fotos da webcam
+        # self.directory = './cpfs/'+str(self.cpf)+'/'
+        # try:
+        #     if not os.path.exists(self.directory):
+        #         os.makedirs(self.directory)
+        # except OSError:
+        #     print('Error: Creating directory. ' + self.directory)
+
+        # ftypes = [('jpg file', "*.jpg")]
+        # root.fileName = askopenfilenames(filetypes=ftypes)
+        root.fileName = askdirectory()
 
         # treina e salva na pasta
         train = Train(root.fileName, self.cpf)
+
 
 class TelaEntrar():
     def __init__(self,master):
@@ -217,17 +237,48 @@ class TelaEntrar():
         self.cpf = e3.get()
 
         if True:
-            # TODO: Testar validade do cpf
-            try:
-                 x = os.open("s1/1.jpg",os.O_RDONLY)
-
-            #     TODO: Open folder
-            except:
-            # Erro tela
-                messagebox.showerror("Erro", "Cpf não está Cadastrado")
-
+        #     # TODO: Testar validade do cpf
+            ftypes = [('jpg file', "*.jpg")]
+            root.fileName = askopenfilenames(filetypes=ftypes)
+            self.predict(root.fileName)
+        #     try:
+        #         # x = os.open("s1/1.jpg",os.O_RDONLY)
+        #
+        #     #     TODO: Open folder
+        #     except:
+        #     # Erro tela
+        #         messagebox.showerror("Erro", "Cpf não está Cadastrado")
+        #
         else:
-            messagebox.showerror("Erro", "Dados Inválidos")
+            messagebox.showerror("Erro", "CPF inválido")
+
+    def predict(self, caminho):
+
+        self.img = cv2.imread(caminho[0])
+        self.imag = self.img.copy()
+
+        self.rost, self.rect = detect_face(self.imag)
+        self.model = cv2.face.LBPHFaceRecognizer_create()
+
+        # testar se existe pasta
+        # cria a pasta 'training', se não existir
+        self.directory = './training/' + str(self.cpf) + '.yml'
+        if os.path.exists(self.directory):
+            self.model.read(self.directory)
+        else:
+            print('Não existe esse diretório')
+
+        # Predicts a label and associated confidence (e.g. distance) for a given input image.
+        # confidence: the distance to the closest item in the database (0 would be a "perfect match")
+        self.labels, self.confidence = self.model.predict(self.rost)
+
+        # print('labels:', self.labels)
+        # print('confidence:', self.confidence)
+        if self.confidence < 10:
+            print('Entrada permitida')
+        else:
+            print('Entrada negada')
+
 
 class TelaOpcoes():
     print("Tela Opcoes")
