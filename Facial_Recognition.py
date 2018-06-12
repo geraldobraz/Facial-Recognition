@@ -8,11 +8,52 @@ import cv2
 import numpy as np
 from tkinter import messagebox
 import time
+from pycpfcnpj import cpfcnpj
+
+import mysql.connector
+
 
 global detect_frontalface
-detect_frontalface = 'C:\opencv\sources\data\haarcascades\haarcascade_frontalface_default.xml'
+detect_frontalface = '/home/geraldobraz/opencv-3.4.1/data/haarcascades/haarcascade_frontalface_default.xml'
+
+# 'C:\opencv\sources\data\haarcascades\haarcascade_frontalface_default.xml'
 # '/home/geraldobraz/opencv-3.4.1/data/haarcascades/haarcascade_frontalface_default.xml'
 
+
+
+# >> Configuracao do BD
+cnx = mysql.connector.connect(user='root', password='senha',
+                              host='localhost',
+                              database='Facial_DataBase')
+
+
+add_Usuarios = ("INSERT INTO Usuarios "
+               "(NOME,CPF) "
+               "VALUES (%s, %s)")
+
+update_senha = ("UPDATE Alunos SET SENHA = %s"
+"WHERE CPF = %s")
+
+def ProcuraCpf(ValorCpf):
+    cursor = cnx.cursor()
+    query = ("SELECT CPF FROM Usuarios ")
+
+    cursor.execute(query)
+
+    validador_cpf = False
+    for row in cursor:
+        if (ValorCpf in row):
+            print (row)
+            print ("Cpf existe e esta no banco")
+            validador_cpf = True
+        else:
+            print (row)
+            print ("Cpf nao eh esse")
+
+    cursor.close()
+    return validador_cpf
+
+# >>
 
 def detect_face(img):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -29,17 +70,26 @@ def detect_face(img):
     # return only the face part of the image
     return gray[y:y + w, x:x + h], rosto[0]
 
-
 class Finalize():
-    def __init__(self, master, cpf):
+    def __init__(self, master, cpf,nome):
     #TODO:    Add no BD a imagem pelo cpf que recebeu
         print("Finalize")
-
+        self.nome = nome
+        self.cpf = cpf
+#         http://www.mysqltutorial.org/python-mysql-blob/
+#     FIXME: Add as fotos no BD
+        dados = (self.nome,self.cpf)
+        cursor = cnx.cursor()
+        cursor.execute(add_Usuarios,dados)
+        cnx.commit()
+        cursor.close()
+        print("Dados Salvos")
 
 class Choice():
-    def __init__(self,master,cpf):
+    def __init__(self,master,cpf,nome):
         print("Choice")
         self.cpf = cpf
+        self.nome = nome
         self.Tela = Toplevel(root)
         self.Tela.geometry("350x150")
         self.Tela.title("Tela Selecionar")
@@ -58,9 +108,8 @@ class Choice():
     def Finalizar(self):
         print("Finalizar")
         self.Tela.destroy()
-        finalize = Finalize(root, self.cpf)
-
-
+        finalize = Finalize(root, self.cpf,self.nome)
+'''
 class TelaWebcam_Save():
     sampleNum = 0
     idNum = 0
@@ -109,12 +158,14 @@ class TelaWebcam_Save():
         cv2.imwrite("Imagens/"+ self.cpf+".jpg", aux)
         # self.telaWebcam_save.quit()
         time.sleep(0.5)
-        telaChoice = Choice(root, self.cpf)
+        # telaChoice = Choice(root, self.cpf,self.nome)
 
+'''
 
 class Train():
-    def __init__(self, files, cpf):
+    def __init__(self, files, cpf,nome):
         self.cpf = cpf
+        self.nome = nome
         # caminho das imagens para realizar treinamento
         self.faces = []
         self.dir = [str(files) + '/' + i for i in os.listdir(files) if i.endswith(".jpg")]
@@ -135,7 +186,7 @@ class Train():
 
         self.face_recognizer.save("training/" + str(self.cpf) + ".yml")
 
-        telaChoice = Choice(root, self.cpf)
+        telaChoice = Choice(root, self.cpf, self.nome)
 
     def prepare_training_data(self):
         for self.dir_img in self.dir:
@@ -150,7 +201,7 @@ class Train():
 
             # self.face, _ = self.detect_face(self.image)
             self.face, _ = detect_face(self.image)
-            cv2.imshow("Face detection", cv2.resize(self.face, (400, 500)))
+            # cv2.imshow("Face detection", cv2.resize(self.face, (400, 500)))
             cv2.waitKey(100)
 
             # se a face não for detectada, a imagem será desconsiderada
@@ -163,7 +214,6 @@ class Train():
         cv2.destroyAllWindows()
 
         return self.faces
-
 
 class TelaCadastro():
     qtdeImagens = 0
@@ -191,9 +241,15 @@ class TelaCadastro():
         self.nome = str(e1.get())
         self.cpf = str(e2.get())
         print(self.nome,self.cpf)
-        # Salvar os dados no MySQL
-        # telaWebcam_save = TelaWebcam_Save(self.telaCadastro, self.cpf)
-        self.facialRecognation()
+        if cpfcnpj.validate(self.cpf):
+            if not ProcuraCpf(self.cpf):
+                # Salvar os dados no MySQL
+                # telaWebcam_save = TelaWebcam_Save(self.telaCadastro, self.cpf)
+                self.facialRecognation()
+            else:
+                messagebox.showerror("Erro", "O CPF já foi cadastrado!")
+        else:
+            messagebox.showerror("Erro", "CPF inválido")
 
     def facialRecognation(self):
         self.Tela.destroy()
@@ -213,8 +269,14 @@ class TelaCadastro():
         root.fileName = askdirectory()
 
         # treina e salva na pasta
-        train = Train(root.fileName, self.cpf)
+        train = Train(root.fileName, self.cpf, self.nome)
 
+class Entrou():
+    def __init__(self,master):
+        self.Tela = Toplevel(root)
+        self.Tela.title('TOP')
+        self.Tela.geometry('300x200')
+        Label(self.Tela,text="Parabéns!").grid()
 
 class TelaEntrar():
     def __init__(self,master):
@@ -236,7 +298,7 @@ class TelaEntrar():
         print("Entrou")
         self.cpf = e3.get()
 
-        if True:
+        if cpfcnpj.validate(self.cpf) and ProcuraCpf(self.cpf):
         #     # TODO: Testar validade do cpf
             ftypes = [('jpg file', "*.jpg")]
             root.fileName = askopenfilenames(filetypes=ftypes)
@@ -276,9 +338,10 @@ class TelaEntrar():
         # print('confidence:', self.confidence)
         if self.confidence < 10:
             print('Entrada permitida')
+            entrar = Entrou(root)
         else:
             print('Entrada negada')
-
+            messagebox.showerror("Erro", "Face não corresponde ao CPF")
 
 class TelaOpcoes():
     print("Tela Opcoes")
@@ -302,7 +365,6 @@ class TelaOpcoes():
     def Cadastrar(self):
         print("Cadastrar")
         telaCadastro = TelaCadastro(root)
-
 
 if __name__ == '__main__':
     root = Tk()
