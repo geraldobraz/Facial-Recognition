@@ -8,10 +8,44 @@ import cv2
 import numpy as np
 from tkinter import messagebox
 import time
+from pycpfcnpj import cpfcnpj
+import mysql.connector
 
 global detect_frontalface
 detect_frontalface = 'C:\opencv\sources\data\haarcascades\haarcascade_frontalface_default.xml'
+# 'C:\opencv\sources\data\haarcascades\haarcascade_frontalface_default.xml'
 # '/home/geraldobraz/opencv-3.4.1/data/haarcascades/haarcascade_frontalface_default.xml'
+'''
+cnx = mysql.connector.connect(user='root', password='senha',
+                              host='localhost',
+                              database='Facial_DataBase')
+
+add_Usuarios = ("INSERT INTO Usuarios "
+               "(NOME, CPF) "
+               "VALUES (%s, %s)")
+
+update_senha = ("UPDATE Alunos SET SENHA = %s" 
+                "WHERE CPF = %s")
+
+def ProcuraCpf(ValorCpf):
+    cursor = cnx.cursor()
+    query = ("SELECT CPF FROM Usuarios ")
+
+    cursor.execute(query)
+
+    validador_cpf = False
+    for row in cursor:
+        if (ValorCpf in row):
+            print(row)
+            print("Cpf existe e esta no banco")
+            validador_cpf = True
+        else:
+            print(row)
+            print("Cpf nao eh esse")
+
+    cursor.close()
+    return validador_cpf
+'''
 
 
 def detect_face(img):
@@ -31,14 +65,28 @@ def detect_face(img):
 
 
 class Finalize():
-    def __init__(self, master, cpf):
-    #TODO:    Add no BD a imagem pelo cpf que recebeu
+    def __init__(self, master, cpf, nome):
+        # TODO:    Add no BD a imagem pelo cpf que recebeu
         print("Finalize")
+
+        self.nome = nome
+        self.cpf = cpf
+        '''
+        # http://www.mysqltutorial.org/python-mysql-blob/
+        # FIXME: Add as fotos no BD
+        dados = (self.nome, self.cpf)
+        cursor = cnx.cursor()
+        cursor.execute(add_Usuarios, dados)
+        cnx.commit()
+        cursor.close()
+        print("Dados Salvos")
+        '''
 
 
 class Choice():
-    def __init__(self,master,cpf):
+    def __init__(self, master, cpf, nome):
         print("Choice")
+        self.nome = nome
         self.cpf = cpf
         self.Tela = Toplevel(root)
         self.Tela.geometry("350x150")
@@ -58,62 +106,80 @@ class Choice():
     def Finalizar(self):
         print("Finalizar")
         self.Tela.destroy()
-        finalize = Finalize(root, self.cpf)
+        finalize = Finalize(root, self.cpf, self.nome)
 
 
 class TelaWebcam_Save():
-    sampleNum = 0
+    # sampleNum = 0
     idNum = 0
-    def __init__(self, master, cpf, sampleNum,qtdeImagens):
+    def __init__(self, master, cpf, nome, sampleNum, qtdeImagens):
         self.Tela = Toplevel(root)
         self.cpf = cpf
-        self.sampleNum = sampleNum
-        # self.highestValue = sampleNum
+        self.nome = nome
+        self.sampleNum = 0
+        # self.sampleNum = sampleNum
+        self.highestValue = sampleNum
         # self.telaWebcam_save.geometry("300x150")
         self.pegarImagem()
         print("SampleNum is " + str(self.sampleNum))
         # self.moveNext()
 
     def pegarImagem(self):
+
         self.Tela.destroy()
         # self.telaWebcam_save.destroy()
-        sampleNum = self.sampleNum
-        print("First" + str(sampleNum))
-        highestValue = sampleNum
+        # print("First" + str(sampleNum))
         face_cascade = cv2.CascadeClassifier(detect_frontalface)
 
         cam = cv2.VideoCapture(0)
         while True:
             _, frame = cam.read()
-
             # cv2image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGBA)
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             faces = face_cascade.detectMultiScale(gray, 1.3, 5)
             for (x, y, w, h) in faces:
-                sampleNum += 1
-                cv2.imwrite("dataSet/User." + str(self.idNum) + "." + str(self.sampleNum) + ".jpg", gray[y:y + h, x:x + w])
+                self.sampleNum += 1
+                self.upload2BD(frame, self.sampleNum)
+                # cv2.imwrite("dataSet/User." + str(self.idNum) + "." + str(self.sampleNum) + ".jpg", gray[y:y + h, x:x + w])
                 # cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
                 cv2.waitKey(100)
+
             if cv2.waitKey(100) & 0xFF == ord('q'):
                 break
-            elif sampleNum > highestValue + 5:
+            elif self.sampleNum > self.highestValue:
+            # elif self.sampleNum > self.highestValue + 5:
                 break
             cv2.imshow("Face", frame)
+            # self.upload2BD(frame, self.sampleNum)
             cv2.waitKey(1)
         cam.release()
         cv2.destroyAllWindows()
-        self.upload2BD(frame)
+        # self.upload2BD(frame, sampleNum)
 
-    def upload2BD(self, aux):
-        print("Imagens/"+ self.cpf+".jpg")
-        cv2.imwrite("Imagens/"+ self.cpf+".jpg", aux)
+        # treina a partir das fotos tiradas
+        train = Train(self.directory, self.cpf, self.nome)
+
+    def upload2BD(self, aux, num):
+
+        # cria uma pasta a partir do cpf para salvar as fotos da webcam
+        self.directory = './Imagens/' + str(self.cpf) + '/'
+        try:
+            if not os.path.exists(self.directory):
+                os.makedirs(self.directory)
+            # print("Imagens/"+ self.cpf+".jpg")
+            # cv2.imwrite("Imagens/" + str(num) + '_' + str(self.cpf) + ".jpg", aux)
+            cv2.imwrite(self.directory + str(num) + '.jpg', aux)
+        except OSError:
+            print('Error: Creating directory. ' + self.directory)
+
         # self.telaWebcam_save.quit()
         time.sleep(0.5)
-        telaChoice = Choice(root, self.cpf)
+        telaChoice = Choice(root, self.cpf, self.nome)
 
 
 class Train():
-    def __init__(self, files, cpf):
+    def __init__(self, files, cpf, nome):
+        self.nome = nome
         self.cpf = cpf
         # caminho das imagens para realizar treinamento
         self.faces = []
@@ -134,8 +200,8 @@ class Train():
             print('Error: Creating directory. ' + self.directory)
 
         self.face_recognizer.save("training/" + str(self.cpf) + ".yml")
-
-        telaChoice = Choice(root, self.cpf)
+        print('FOI')
+        telaChoice = Choice(root, self.cpf, self.nome)
 
     def prepare_training_data(self):
         for self.dir_img in self.dir:
@@ -168,7 +234,7 @@ class Train():
 class TelaCadastro():
     qtdeImagens = 0
 
-    def __init__(self,master):
+    def __init__(self, master):
         self.Tela = Toplevel(root)
         self.Tela.title('Tela de Cadastro')
         self.Tela.geometry('300x200')
@@ -190,15 +256,22 @@ class TelaCadastro():
         # TODO: openCV
         self.nome = str(e1.get())
         self.cpf = str(e2.get())
-        print(self.nome,self.cpf)
-        # Salvar os dados no MySQL
-        # telaWebcam_save = TelaWebcam_Save(self.telaCadastro, self.cpf)
+        print(self.nome, self.cpf)
+        # if cpfcnpj.validate(self.cpf):
+        #     if not ProcuraCpf(self.cpf):
+        #         # Salvar os dados no MySQL
+        #         # telaWebcam_Save = TelaWebcam_Save(root, self.cpf, self.nome, sampleNum, self.qtdeImagens)
+        #         self.facialRecognation()
+        #     else:
+        #         messagebox.showerror("Erro", "O CPF já foi cadastrado!")
+        # else:
+        #     messagebox.showerror("Erro", "O CPF inválido!")
         self.facialRecognation()
 
     def facialRecognation(self):
         self.Tela.destroy()
-        sampleNum = 0
-        # self.telaWebcam_Save = TelaWebcam_Save(root,self.cpf,sampleNum,self.qtdeImagens)
+        sampleNum = 8
+        self.telaWebcam_Save = TelaWebcam_Save(root, self.cpf, self.nome, sampleNum, self.qtdeImagens)
 
         # cria uma pasta a partir do cpf para salvar as fotos da webcam
         # self.directory = './cpfs/'+str(self.cpf)+'/'
@@ -210,10 +283,18 @@ class TelaCadastro():
 
         # ftypes = [('jpg file', "*.jpg")]
         # root.fileName = askopenfilenames(filetypes=ftypes)
-        root.fileName = askdirectory()
+        # root.fileName = askdirectory()
 
         # treina e salva na pasta
-        train = Train(root.fileName, self.cpf)
+        # train = Train(root.fileName, self.cpf, self.nome)
+
+
+class Entrou():
+    def __init__(self, master):
+        self.Tela = Toplevel(root)
+        self.Tela.title('TOP')
+        self.Tela.geometry('300x200')
+        Label(self.Tela, text="Parabéns!").grid()
 
 
 class TelaEntrar():
@@ -235,12 +316,13 @@ class TelaEntrar():
     def Entrar(self):
         print("Entrou")
         self.cpf = e3.get()
-
-        if True:
+        self.imagem_entrar()
+        # if cpfcnpj.validate(self.cpf) and ProcuraCpf(self.cpf):
         #     # TODO: Testar validade do cpf
-            ftypes = [('jpg file', "*.jpg")]
-            root.fileName = askopenfilenames(filetypes=ftypes)
-            self.predict(root.fileName)
+        #     ftypes = [('jpg file', "*.jpg")]
+        #     root.fileName = askopenfilenames(filetypes=ftypes)
+        #     self.predict(root.fileName)
+
         #     try:
         #         # x = os.open("s1/1.jpg",os.O_RDONLY)
         #
@@ -248,13 +330,48 @@ class TelaEntrar():
         #     except:
         #     # Erro tela
         #         messagebox.showerror("Erro", "Cpf não está Cadastrado")
-        #
-        else:
-            messagebox.showerror("Erro", "CPF inválido")
 
-    def predict(self, caminho):
+        # else:
+        #     messagebox.showerror("Erro", "CPF inválido")
 
-        self.img = cv2.imread(caminho[0])
+    def imagem_entrar(self):
+        self.directory = './Entrar/'
+        self.diretorio = self.directory + str(self.cpf) + '_entrar.jpg'
+        highestValue = 10
+        sampleNum = 0
+        face_cascade = cv2.CascadeClassifier(detect_frontalface)
+
+        cam = cv2.VideoCapture(0)
+        while True:
+            _, frame = cam.read()
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            faces = face_cascade.detectMultiScale(gray, 1.3, 5)
+            for (x, y, w, h) in faces:
+                sampleNum += 1
+                cv2.waitKey(100)
+
+            if cv2.waitKey(100) & 0xFF == ord('q'):
+                break
+            elif sampleNum > highestValue:
+                break
+            cv2.imshow("Face", frame)
+            cv2.waitKey(1)
+
+        try:
+            if not os.path.exists(self.directory):
+                os.makedirs(self.directory)
+            # cv2.imwrite("Imagens/" + str(num) + '_' + str(self.cpf) + ".jpg", aux)
+            # cv2.imwrite(self.directory + str(self.cpf) + '.jpg', aux)
+            cv2.imwrite(self.diretorio, frame)
+        except OSError:
+            print('Error: Creating directory. ' + self.directory)
+
+        self.predict(self.diretorio)
+        cam.release()
+        cv2.destroyAllWindows()
+
+    def predict(self, im):
+        self.img = cv2.imread(im)
         self.imag = self.img.copy()
 
         self.rost, self.rect = detect_face(self.imag)
@@ -273,11 +390,13 @@ class TelaEntrar():
         self.labels, self.confidence = self.model.predict(self.rost)
 
         # print('labels:', self.labels)
-        # print('confidence:', self.confidence)
+        print('confidence:', self.confidence)
         if self.confidence < 10:
             print('Entrada permitida')
+            entrar = Entrou(root)
         else:
             print('Entrada negada')
+            messagebox.showerror("Erro", "Face não corresponde ao CPF")
 
 
 class TelaOpcoes():
