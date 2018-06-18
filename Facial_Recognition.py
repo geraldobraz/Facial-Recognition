@@ -158,6 +158,7 @@ class TelaWebcam_Save():
 
         # treina a partir das fotos tiradas
         train = Train(self.directory, self.cpf, self.nome)
+        # telaChoice = Choice(root, self.cpf, self.nome)
 
     def upload2BD(self, aux, num):
 
@@ -174,7 +175,7 @@ class TelaWebcam_Save():
 
         # self.telaWebcam_save.quit()
         time.sleep(0.5)
-        telaChoice = Choice(root, self.cpf, self.nome)
+        # telaChoice = Choice(root, self.cpf, self.nome)
 
 
 class Train():
@@ -253,20 +254,23 @@ class TelaCadastro():
 
     def salvarDados(self):
         print("Salvando...")
-        # TODO: openCV
+
         self.nome = str(e1.get())
         self.cpf = str(e2.get())
+        self.file = './training/'+str(self.cpf)+'.yml'
         print(self.nome, self.cpf)
-        # if cpfcnpj.validate(self.cpf):
-        #     if not ProcuraCpf(self.cpf):
-        #         # Salvar os dados no MySQL
-        #         # telaWebcam_Save = TelaWebcam_Save(root, self.cpf, self.nome, sampleNum, self.qtdeImagens)
-        #         self.facialRecognation()
-        #     else:
-        #         messagebox.showerror("Erro", "O CPF já foi cadastrado!")
-        # else:
-        #     messagebox.showerror("Erro", "O CPF inválido!")
-        self.facialRecognation()
+
+        if cpfcnpj.validate(self.cpf):
+            if not os.path.isfile(self.file):
+                # Salvar os dados no MySQL
+                # telaWebcam_Save = TelaWebcam_Save(root, self.cpf, self.nome, sampleNum, self.qtdeImagens)
+                self.facialRecognation()
+            else:
+                messagebox.showerror("Erro", "O CPF já foi cadastrado!")
+        else:
+            messagebox.showerror("Erro", "CPF inválido!")
+
+        self.Tela.destroy()
 
     def facialRecognation(self):
         self.Tela.destroy()
@@ -314,25 +318,29 @@ class TelaEntrar():
         Button(self.Tela, text='Entrar', command=self.Entrar).grid(row=7, column=1, sticky=W, pady=4)
 
     def Entrar(self):
+
         print("Entrou")
         self.cpf = e3.get()
-        self.imagem_entrar()
         # if cpfcnpj.validate(self.cpf) and ProcuraCpf(self.cpf):
-        #     # TODO: Testar validade do cpf
-        #     ftypes = [('jpg file', "*.jpg")]
-        #     root.fileName = askopenfilenames(filetypes=ftypes)
-        #     self.predict(root.fileName)
+        if cpfcnpj.validate(self.cpf):
 
-        #     try:
-        #         # x = os.open("s1/1.jpg",os.O_RDONLY)
-        #
-        #     #     TODO: Open folder
-        #     except:
-        #     # Erro tela
-        #         messagebox.showerror("Erro", "Cpf não está Cadastrado")
+            # ftypes = [('jpg file', "*.jpg")]
+            # root.fileName = askopenfilenames(filetypes=ftypes)
+            # self.predict(root.fileName)
 
-        # else:
-        #     messagebox.showerror("Erro", "CPF inválido")
+            self.file = './training/'+str(self.cpf)+'.yml'
+            try:
+                if os.path.isfile(self.file):
+                    self.imagem_entrar()
+                else:
+                    messagebox.showerror("Erro", "CPF não está cadastrado")
+            except:
+                print('Error')
+
+        else:
+            messagebox.showerror("Erro", "CPF inválido")
+
+        self.Tela.destroy()
 
     def imagem_entrar(self):
         self.directory = './Entrar/'
@@ -375,6 +383,7 @@ class TelaEntrar():
         self.imag = self.img.copy()
 
         self.rost, self.rect = detect_face(self.imag)
+        cv2.imshow("Face detection", cv2.resize(self.rost, (400, 500)))
         self.model = cv2.face.LBPHFaceRecognizer_create()
 
         # testar se existe pasta
