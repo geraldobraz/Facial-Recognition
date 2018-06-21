@@ -1,51 +1,16 @@
 from tkinter import *
-# from tkinter import filedialog
 from tkinter.filedialog import *
 import os
 import cv2
-# import sys
-# from PIL import Image, ImageTk
 import numpy as np
 from tkinter import messagebox
 import time
 from pycpfcnpj import cpfcnpj
-import mysql.connector
 
 global detect_frontalface
 detect_frontalface = 'C:\opencv\sources\data\haarcascades\haarcascade_frontalface_default.xml'
 # 'C:\opencv\sources\data\haarcascades\haarcascade_frontalface_default.xml'
 # '/home/geraldobraz/opencv-3.4.1/data/haarcascades/haarcascade_frontalface_default.xml'
-'''
-cnx = mysql.connector.connect(user='root', password='senha',
-                              host='localhost',
-                              database='Facial_DataBase')
-
-add_Usuarios = ("INSERT INTO Usuarios "
-               "(NOME, CPF) "
-               "VALUES (%s, %s)")
-
-update_senha = ("UPDATE Alunos SET SENHA = %s" 
-                "WHERE CPF = %s")
-
-def ProcuraCpf(ValorCpf):
-    cursor = cnx.cursor()
-    query = ("SELECT CPF FROM Usuarios ")
-
-    cursor.execute(query)
-
-    validador_cpf = False
-    for row in cursor:
-        if (ValorCpf in row):
-            print(row)
-            print("Cpf existe e esta no banco")
-            validador_cpf = True
-        else:
-            print(row)
-            print("Cpf nao eh esse")
-
-    cursor.close()
-    return validador_cpf
-'''
 
 
 def detect_face(img):
@@ -62,25 +27,6 @@ def detect_face(img):
 
     # return only the face part of the image
     return gray[y:y + w, x:x + h], rosto[0]
-
-
-class Finalize():
-    def __init__(self, master, cpf, nome):
-        # TODO:    Add no BD a imagem pelo cpf que recebeu
-        print("Finalize")
-
-        self.nome = nome
-        self.cpf = cpf
-        '''
-        # http://www.mysqltutorial.org/python-mysql-blob/
-        # FIXME: Add as fotos no BD
-        dados = (self.nome, self.cpf)
-        cursor = cnx.cursor()
-        cursor.execute(add_Usuarios, dados)
-        cnx.commit()
-        cursor.close()
-        print("Dados Salvos")
-        '''
 
 
 class Choice():
@@ -106,59 +52,45 @@ class Choice():
     def Finalizar(self):
         print("Finalizar")
         self.Tela.destroy()
-        finalize = Finalize(root, self.cpf, self.nome)
 
 
 class TelaWebcam_Save():
-    # sampleNum = 0
     idNum = 0
     def __init__(self, master, cpf, nome, sampleNum, qtdeImagens):
         self.Tela = Toplevel(root)
         self.cpf = cpf
         self.nome = nome
         self.sampleNum = 0
-        # self.sampleNum = sampleNum
         self.highestValue = sampleNum
-        # self.telaWebcam_save.geometry("300x150")
         self.pegarImagem()
         print("SampleNum is " + str(self.sampleNum))
-        # self.moveNext()
 
     def pegarImagem(self):
 
         self.Tela.destroy()
-        # self.telaWebcam_save.destroy()
-        # print("First" + str(sampleNum))
         face_cascade = cv2.CascadeClassifier(detect_frontalface)
 
         cam = cv2.VideoCapture(0)
         while True:
             _, frame = cam.read()
-            # cv2image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGBA)
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             faces = face_cascade.detectMultiScale(gray, 1.3, 5)
             for (x, y, w, h) in faces:
                 self.sampleNum += 1
                 self.upload2BD(frame, self.sampleNum)
-                # cv2.imwrite("dataSet/User." + str(self.idNum) + "." + str(self.sampleNum) + ".jpg", gray[y:y + h, x:x + w])
-                # cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
                 cv2.waitKey(100)
 
             if cv2.waitKey(100) & 0xFF == ord('q'):
                 break
             elif self.sampleNum > self.highestValue:
-            # elif self.sampleNum > self.highestValue + 5:
                 break
             cv2.imshow("Face", frame)
-            # self.upload2BD(frame, self.sampleNum)
             cv2.waitKey(1)
         cam.release()
         cv2.destroyAllWindows()
-        # self.upload2BD(frame, sampleNum)
 
         # treina a partir das fotos tiradas
         train = Train(self.directory, self.cpf, self.nome)
-        # telaChoice = Choice(root, self.cpf, self.nome)
 
     def upload2BD(self, aux, num):
 
@@ -167,15 +99,11 @@ class TelaWebcam_Save():
         try:
             if not os.path.exists(self.directory):
                 os.makedirs(self.directory)
-            # print("Imagens/"+ self.cpf+".jpg")
-            # cv2.imwrite("Imagens/" + str(num) + '_' + str(self.cpf) + ".jpg", aux)
             cv2.imwrite(self.directory + str(num) + '.jpg', aux)
         except OSError:
             print('Error: Creating directory. ' + self.directory)
 
-        # self.telaWebcam_save.quit()
         time.sleep(0.5)
-        # telaChoice = Choice(root, self.cpf, self.nome)
 
 
 class Train():
@@ -206,28 +134,15 @@ class Train():
 
     def prepare_training_data(self):
         for self.dir_img in self.dir:
-            # não lê arquivos do tipo .yml, caso exista
-            # if self.dir_img.endswith(".yml"):
-            #     continue
 
             # lê uma imagem e detecta a face
             self.image = cv2.imread(self.dir_img)
-            # cv2.imshow("Training on image...", cv2.resize(self.image, (400, 500)))
-            # cv2.waitKey(100)
 
-            # self.face, _ = self.detect_face(self.image)
             self.face, _ = detect_face(self.image)
-            cv2.imshow("Face detection", cv2.resize(self.face, (400, 500)))
-            cv2.waitKey(100)
 
             # se a face não for detectada, a imagem será desconsiderada
             if self.face is not None:
                 self.faces.append(self.face)
-
-        # caso tire o imshow após o imread, retirar essa parte
-        cv2.destroyAllWindows()
-        cv2.waitKey(1)
-        cv2.destroyAllWindows()
 
         return self.faces
 
@@ -262,8 +177,6 @@ class TelaCadastro():
 
         if cpfcnpj.validate(self.cpf):
             if not os.path.isfile(self.file):
-                # Salvar os dados no MySQL
-                # telaWebcam_Save = TelaWebcam_Save(root, self.cpf, self.nome, sampleNum, self.qtdeImagens)
                 self.facialRecognation()
             else:
                 messagebox.showerror("Erro", "O CPF já foi cadastrado!")
@@ -274,23 +187,8 @@ class TelaCadastro():
 
     def facialRecognation(self):
         self.Tela.destroy()
-        sampleNum = 8
+        sampleNum = 19
         self.telaWebcam_Save = TelaWebcam_Save(root, self.cpf, self.nome, sampleNum, self.qtdeImagens)
-
-        # cria uma pasta a partir do cpf para salvar as fotos da webcam
-        # self.directory = './cpfs/'+str(self.cpf)+'/'
-        # try:
-        #     if not os.path.exists(self.directory):
-        #         os.makedirs(self.directory)
-        # except OSError:
-        #     print('Error: Creating directory. ' + self.directory)
-
-        # ftypes = [('jpg file', "*.jpg")]
-        # root.fileName = askopenfilenames(filetypes=ftypes)
-        # root.fileName = askdirectory()
-
-        # treina e salva na pasta
-        # train = Train(root.fileName, self.cpf, self.nome)
 
 
 class Entrou():
@@ -321,13 +219,7 @@ class TelaEntrar():
 
         print("Entrou")
         self.cpf = e3.get()
-        # if cpfcnpj.validate(self.cpf) and ProcuraCpf(self.cpf):
         if cpfcnpj.validate(self.cpf):
-
-            # ftypes = [('jpg file', "*.jpg")]
-            # root.fileName = askopenfilenames(filetypes=ftypes)
-            # self.predict(root.fileName)
-
             self.file = './training/'+str(self.cpf)+'.yml'
             try:
                 if os.path.isfile(self.file):
@@ -368,8 +260,6 @@ class TelaEntrar():
         try:
             if not os.path.exists(self.directory):
                 os.makedirs(self.directory)
-            # cv2.imwrite("Imagens/" + str(num) + '_' + str(self.cpf) + ".jpg", aux)
-            # cv2.imwrite(self.directory + str(self.cpf) + '.jpg', aux)
             cv2.imwrite(self.diretorio, frame)
         except OSError:
             print('Error: Creating directory. ' + self.directory)
@@ -398,9 +288,8 @@ class TelaEntrar():
         # confidence: the distance to the closest item in the database (0 would be a "perfect match")
         self.labels, self.confidence = self.model.predict(self.rost)
 
-        # print('labels:', self.labels)
         print('confidence:', self.confidence)
-        if self.confidence < 10:
+        if self.confidence < 45:
             print('Entrada permitida')
             entrar = Entrou(root)
         else:
@@ -412,7 +301,6 @@ class TelaOpcoes():
     print("Tela Opcoes")
 
     def __init__(self,master):
-        # self.telaOpcoes = Tk()
         root.geometry('250x300')
         root.title('Tela de Opções')
         entrarButton = Button(root, height=1, font="Arial 16 normal", text="   Entrar   ",
